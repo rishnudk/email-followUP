@@ -3,6 +3,7 @@ import { redisConnection } from '../lib/redis';
 import { FOLLOWUP_QUEUE_NAME, FollowUpJobData } from '../queues/followup.queue';
 import { prisma } from '../lib/prisma';
 import { EmailStatus, FollowUpStatus } from '@email-followup/shared';
+import { ReplyDetectionService } from '../modules/emails/reply-detection.service';
 
 let worker: Worker<FollowUpJobData> | null = null;
 
@@ -59,9 +60,29 @@ export function startFollowUpWorker(): Worker<FollowUpJobData> {
         },
       });
 
-      // Phases 7 & 8 will hook in the reply verification & MIME sending logic here.
-      console.log(`[FollowUpWorker] Processing follow-up #${attempt} for thread ${thread.id}`);
-      return { status: 'processing', followUpId: followUp.id };
+      // 4. Live inspect thread for human replies, bounces, and auto-responders
+      const inspection = await ReplyDetectionService.inspectThread(userId, emailThreadId);
+
+      if (inspection.hasReplied) {
+        console.log(`[FollowUpWorker] Recipient replied to thread ${emailThreadId}. Cancelling follow-up #${attempt}.`);
+        await prisma.followUp.update({
+          where: { id: followUp.id },
+          data: { status: FollowUpStatus.CANCELLED },
+        });
+        return { status: 'cancelled', reason: 'recipient_replied' };
+      }
+
+      if (inspection.isBounced) {
+        console.log(`[FollowUpWorker] Email thread ${emailThreadId} has bounced. Cancelling follow-up #${attempt}.`);
+        await prisma.followUp.update({
+          where: { id: followUp.id },
+          data: { status: FollowUpStatus.CANCELLED },
+        });
+        return { status: 'cancelled', reason: 'email_bounced' };
+      }
+
+      console.log(`[FollowUpWorker] No reply detected for thread ${emailThreadId}. Ready to dispatch follow-up #${attempt}.`);
+      return { status: 'ready_to_send', followUpId: followUp.id };
     },
     {
       connection: redisConnection,

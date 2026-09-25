@@ -68,15 +68,19 @@ Progress Tracker: `[x]` Completed | `[/]` In Progress | `[ ]` Pending
 ---
 
 ## Phase 7: Reply, Bounce & Auto-Responder Detection
-- [ ] Implement thread inspection logic (`checkForReply(threadId, userEmail)`):
+- [x] Implement thread inspection logic (`ReplyDetectionService.inspectThread`)
   - Retrieve all messages in thread since original email
   - Check if any inbound message exists from recipient
-- [ ] Filter out non-human emails:
-  - Detect Out-of-Office auto-replies (`Auto-Submitted: auto-replied`, `X-Autoreply: yes`)
-  - Detect bounce/delivery failure emails (`mailer-daemon@*`, `postmaster@*`)
-- [ ] When valid reply is found:
+- [x] Filter out non-human emails:
+  - Detect Out-of-Office auto-replies (`Auto-Submitted: auto-replied`, `X-Autoreply: yes`, subject patterns)
+  - Detect bounce/delivery failure emails (`mailer-daemon@*`, `postmaster@*`, failure subjects)
+- [x] When valid reply is found:
+  - Store incoming message in `EmailMessage`
   - Update `EmailThread.status = REPLIED`
   - Cancel any scheduled BullMQ follow-ups for this thread
+- [x] When bounce is found:
+  - Update `EmailThread.status = BOUNCED` and cancel future follow-ups
+- [x] Live inspect thread inside `FollowUpWorker` before dispatching follow-up
 
 ---
 
