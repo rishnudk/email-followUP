@@ -241,6 +241,15 @@ export default function DashboardPage() {
             Connect with Google
           </a>
 
+          <a
+            href="http://localhost:4000/auth/dev-login"
+            id="demo-mode-btn"
+            className="mt-3 w-full py-2.5 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 hover:text-white text-xs font-medium flex items-center justify-center gap-2 border border-slate-700/60 transition-all shadow-sm"
+          >
+            <Sparkles className="w-4 h-4 text-indigo-400" />
+            Enter Demo Mode (Pre-seeded Workspace)
+          </a>
+
           <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-500">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             Zero database leaks — AES-256 encrypted at rest

@@ -20,6 +20,35 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
+   * Dev-mode one-click login for local UI testing
+   */
+  fastify.get('/dev-login', async (_request, reply) => {
+    let demoUser = await prisma.user.findFirst({ where: { email: 'demo@example.com' } });
+    if (!demoUser) {
+      demoUser = await prisma.user.create({
+        data: {
+          email: 'demo@example.com',
+          name: 'Demo User',
+          autoTrackSentEmails: true,
+          autoEnableFollowUp: true,
+          createAsDraft: true,
+        },
+      });
+    }
+
+    reply.setCookie('session', demoUser.id, {
+      path: '/',
+      httpOnly: true,
+      signed: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    return reply.redirect(`${env.WEB_URL}?auth=success`);
+  });
+
+  /**
    * Handles Google OAuth callback redirect
    */
   fastify.get('/google/callback', async (request, reply) => {
@@ -89,6 +118,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         defaultFirstFollowUpDays: true,
         defaultSecondFollowUpDays: true,
         defaultMaxFollowUps: true,
+        createAsDraft: true,
         createdAt: true,
         refreshToken: true,
       },
@@ -109,6 +139,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         defaultFirstFollowUpDays: user.defaultFirstFollowUpDays,
         defaultSecondFollowUpDays: user.defaultSecondFollowUpDays,
         defaultMaxFollowUps: user.defaultMaxFollowUps,
+        createAsDraft: user.createAsDraft,
         googleConnected: Boolean(user.refreshToken),
         createdAt: user.createdAt,
       },
