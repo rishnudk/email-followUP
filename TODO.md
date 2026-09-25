@@ -85,16 +85,18 @@ Progress Tracker: `[x]` Completed | `[/]` In Progress | `[ ]` Pending
 ---
 
 ## Phase 8: Follow-Up Dispatching & Templating
-- [ ] Implement template variable interpolation:
+- [x] Implement template variable interpolation (`TemplateService.interpolate`):
   - `{{recipientName}}`, `{{senderName}}`, `{{originalSubject}}`, `{{company}}`, `{{position}}`
-- [ ] Follow-up Worker execution steps:
+- [x] Follow-up Worker execution steps (`FollowUpDispatcherService.dispatchFollowUp`):
   1. Load thread and verify status is still `WAITING`
   2. Verify thread automation is still enabled
-  3. Run reply check
-  4. If no reply, construct MIME reply and call `sendMessage()`
+  3. Run live reply check via Gmail API
+  4. If no reply, construct MIME reply with RFC 2822 headers and call Gmail send API
   5. Mark current `FollowUp.status = SENT`
-  6. If `attempt < maxFollowUps`, schedule next follow-up job
+  6. If `attempt < maxFollowUps`, schedule next follow-up job during work hours
   7. If max attempts reached, mark `EmailThread.status = COMPLETED`
+- [x] Add manual "Send Follow-Up Now" endpoint (`POST /followups/:threadId/send-now`)
+- [x] Add upcoming follow-ups query endpoint (`GET /followups/upcoming`)
 
 ---
 

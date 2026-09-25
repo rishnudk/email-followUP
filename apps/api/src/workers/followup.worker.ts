@@ -4,6 +4,7 @@ import { FOLLOWUP_QUEUE_NAME, FollowUpJobData } from '../queues/followup.queue';
 import { prisma } from '../lib/prisma';
 import { EmailStatus, FollowUpStatus } from '@email-followup/shared';
 import { ReplyDetectionService } from '../modules/emails/reply-detection.service';
+import { FollowUpDispatcherService } from '../modules/followups/followup-dispatcher.service';
 
 let worker: Worker<FollowUpJobData> | null = null;
 
@@ -81,8 +82,9 @@ export function startFollowUpWorker(): Worker<FollowUpJobData> {
         return { status: 'cancelled', reason: 'email_bounced' };
       }
 
-      console.log(`[FollowUpWorker] No reply detected for thread ${emailThreadId}. Ready to dispatch follow-up #${attempt}.`);
-      return { status: 'ready_to_send', followUpId: followUp.id };
+      console.log(`[FollowUpWorker] No reply detected for thread ${emailThreadId}. Dispatching follow-up #${attempt}...`);
+      const result = await FollowUpDispatcherService.dispatchFollowUp(emailThreadId, attempt);
+      return result;
     },
     {
       connection: redisConnection,

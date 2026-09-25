@@ -6,6 +6,7 @@ import { env } from './config/env';
 import authPlugin from './plugins/auth.plugin';
 import { authRoutes } from './modules/auth/auth.routes';
 import { emailRoutes } from './modules/emails/email.routes';
+import { followUpRoutes } from './modules/followups/followup.routes';
 import { EmailSyncService } from './modules/emails/email-sync.service';
 import { startFollowUpWorker, stopFollowUpWorker } from './workers/followup.worker';
 
@@ -29,6 +30,7 @@ async function bootstrap() {
   // Register routes
   await app.register(authRoutes, { prefix: '/auth' });
   await app.register(emailRoutes, { prefix: '/emails' });
+  await app.register(followUpRoutes, { prefix: '/followups' });
 
   // Health check endpoint
   app.get('/health', async () => {
