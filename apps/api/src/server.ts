@@ -3,6 +3,9 @@ import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import { env } from './config/env';
 
+import authPlugin from './plugins/auth.plugin';
+import { authRoutes } from './modules/auth/auth.routes';
+
 async function bootstrap() {
   const app = Fastify({
     logger: true,
@@ -16,6 +19,12 @@ async function bootstrap() {
   await app.register(cookie, {
     secret: env.SESSION_SECRET,
   });
+
+  // Register authentication plugin
+  await app.register(authPlugin);
+
+  // Register authentication routes
+  await app.register(authRoutes, { prefix: '/auth' });
 
   // Health check endpoint
   app.get('/health', async () => {

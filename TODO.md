@@ -25,12 +25,12 @@ Progress Tracker: `[x]` Completed | `[/]` In Progress | `[ ]` Pending
 ---
 
 ## Phase 3: Google OAuth 2.0 & Authentication
-- [ ] Configure Google OAuth client service (`apps/api/src/modules/auth/google.service.ts`)
-- [ ] Implement `GET /auth/google` route (generate OAuth consent URL with offline access)
-- [ ] Implement `GET /auth/google/callback` route (exchange code for tokens, encrypt & save user)
-- [ ] Implement session/JWT or cookie authentication middleware for protected routes
-- [ ] Implement automatic token refreshing logic before making Gmail API calls
-- [ ] Implement `GET /auth/me` and `POST /auth/logout`
+- [x] Configure Google OAuth client service (`apps/api/src/modules/auth/google.service.ts`)
+- [x] Implement `GET /auth/google` route (generate OAuth consent URL with offline access)
+- [x] Implement `GET /auth/google/callback` route (exchange code for tokens, encrypt & save user, seed templates)
+- [x] Implement session/cookie authentication middleware for protected routes (`apps/api/src/plugins/auth.plugin.ts`)
+- [x] Implement automatic token refreshing logic before making Gmail API calls (`GoogleService.getAuthenticatedClient`)
+- [x] Implement `GET /auth/me` and `POST /auth/logout`
 
 ---
 
