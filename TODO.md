@@ -35,15 +35,15 @@ Progress Tracker: `[x]` Completed | `[/]` In Progress | `[ ]` Pending
 ---
 
 ## Phase 4: Gmail API Client & Thread Extraction
-- [ ] Implement `GmailService` class wrapping Googleapis client
-- [ ] Implement message fetching & RFC 2822 header extraction:
+- [x] Implement `GmailService` class wrapping Googleapis client (`apps/api/src/modules/gmail/gmail.service.ts`)
+- [x] Implement message fetching & RFC 2822 header extraction:
   - Extract internal `threadId` and `id`
   - Extract RFC `Message-ID`, `Subject`, `From`, `To`, `Date`
-- [ ] Implement raw MIME email builder:
+- [x] Implement raw MIME email builder:
   - Add `In-Reply-To` and `References` headers for strict email client threading
   - Set `Subject: Re: ...`
   - Base64URL-encode raw message
-- [ ] Implement `sendEmailInThread()` method
+- [x] Implement `sendEmailInThread()` method
 
 ---
 
