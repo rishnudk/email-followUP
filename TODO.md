@@ -119,23 +119,24 @@ Progress Tracker: `[x]` Completed | `[/]` In Progress | `[ ]` Pending
 ---
 
 ## Phase 10: Frontend UI (Next.js + Tailwind + shadcn/ui)
-- [ ] Global styling and dark/light modern UI design system
-- [ ] Google OAuth login button and session state provider
-- [ ] Dashboard overview page (`/`):
-  - Metric summary cards (Sent, Waiting, Replied, Due)
-  - Upcoming follow-ups widget
-- [ ] Email Threads page (`/emails`):
-  - Filterable & searchable table with status badges and next follow-up dates
-  - Quick action toggles
-- [ ] Thread Detail drawer/page (`/emails/:id`):
-  - Email history timeline
+- [x] Global styling and dark modern aesthetic UI design system (`globals.css`)
+- [x] Google OAuth login landing view and session state provider
+- [x] Dashboard overview page (`/`):
+  - Metric summary cards (Sent, Waiting, Replied, Bounced, Due Soon)
+  - Upcoming follow-ups widget & manual "Sync Gmail" trigger
+- [x] Email Threads table:
+  - Filterable & searchable table with status badges (`WAITING`, `REPLIED`, `COMPLETED`, `STOPPED`, `BOUNCED`)
+  - Quick action toggles (Pause, Resume, Send Now, Stop)
+- [x] Thread Detail drawer modal:
+  - Full email history conversation timeline
   - "Send Follow-up Now" button
-  - Follow-up schedule preview
-- [ ] Templates manager (`/templates`):
-  - Rich template editor with variable placeholders
-- [ ] Settings page (`/settings`):
-  - Default follow-up intervals (e.g. 3 days, 5 days)
-  - Auto-tracking toggle & Timezone selection
+  - Follow-up attempt counter & next scheduled timing
+- [x] Templates manager tab (`/templates`):
+  - Rich template editor with variable pills (`{{recipientName}}`, `{{company}}`, `{{position}}`, etc.)
+  - Set default template action
+- [x] Settings tab (`/settings`):
+  - Configurable intervals (first follow-up days, second follow-up days, max follow-ups)
+  - Auto-tracking and auto-enable toggles with instant save feedback
 
 ---
 
