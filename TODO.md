@@ -48,11 +48,11 @@ Progress Tracker: `[x]` Completed | `[/]` In Progress | `[ ]` Pending
 ---
 
 ## Phase 5: Sent Email Detection & Sync Engine
-- [ ] Implement sent message polling query (`label:SENT after:<timestamp>`)
-- [ ] Implement message deduplication (unique by `userId + providerThreadId`)
-- [ ] Store `EmailThread` and initial `EmailMessage`
-- [ ] Add manual sync endpoint (`POST /emails/sync`)
-- [ ] Setup background periodic sync task (every 5 minutes)
+- [x] Implement sent message polling query (`label:SENT after:<timestamp>`) (`EmailSyncService`)
+- [x] Implement message deduplication (unique by `userId + providerThreadId`)
+- [x] Store `EmailThread` and initial `EmailMessage`
+- [x] Add manual sync endpoint (`POST /emails/sync`)
+- [x] Setup background periodic sync task (every 5 minutes in `server.ts`)
 
 ---
 

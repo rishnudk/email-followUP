@@ -5,6 +5,8 @@ import { env } from './config/env';
 
 import authPlugin from './plugins/auth.plugin';
 import { authRoutes } from './modules/auth/auth.routes';
+import { emailRoutes } from './modules/emails/email.routes';
+import { EmailSyncService } from './modules/emails/email-sync.service';
 
 async function bootstrap() {
   const app = Fastify({
@@ -23,8 +25,9 @@ async function bootstrap() {
   // Register authentication plugin
   await app.register(authPlugin);
 
-  // Register authentication routes
+  // Register routes
   await app.register(authRoutes, { prefix: '/auth' });
+  await app.register(emailRoutes, { prefix: '/emails' });
 
   // Health check endpoint
   app.get('/health', async () => {
@@ -34,6 +37,17 @@ async function bootstrap() {
   try {
     await app.listen({ port: env.PORT, host: '0.0.0.0' });
     app.log.info(`🚀 API server running on port ${env.PORT}`);
+
+    // Setup periodic email sync every 5 minutes
+    const SYNC_INTERVAL_MS = 5 * 60 * 1000;
+    setInterval(async () => {
+      try {
+        app.log.info('[PeriodicSync] Running scheduled sent-email check...');
+        await EmailSyncService.syncAllActiveUsers();
+      } catch (err: any) {
+        app.log.error('[PeriodicSync] Error in scheduled email sync:', err);
+      }
+    }, SYNC_INTERVAL_MS);
   } catch (err) {
     app.log.error(err);
     process.exit(1);
