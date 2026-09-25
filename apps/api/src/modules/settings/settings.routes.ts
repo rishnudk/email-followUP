@@ -23,6 +23,7 @@ export const settingsRoutes: FastifyPluginAsync = async (fastify) => {
         defaultMaxFollowUps: true,
         autoTrackSentEmails: true,
         autoEnableFollowUp: true,
+        createAsDraft: true,
         lastSyncAt: true,
       },
     });
@@ -41,6 +42,7 @@ export const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       defaultMaxFollowUps: z.number().int().min(1).max(10).optional(),
       autoTrackSentEmails: z.boolean().optional(),
       autoEnableFollowUp: z.boolean().optional(),
+      createAsDraft: z.boolean().optional(),
       timezone: z.string().min(1).optional(),
     });
 
@@ -62,6 +64,7 @@ export const settingsRoutes: FastifyPluginAsync = async (fastify) => {
         defaultMaxFollowUps: true,
         autoTrackSentEmails: true,
         autoEnableFollowUp: true,
+        createAsDraft: true,
       },
     });
 

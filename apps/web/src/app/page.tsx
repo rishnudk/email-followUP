@@ -769,6 +769,26 @@ export default function DashboardPage() {
                       <div className="text-[11px] text-slate-500">Auto-schedule follow-ups without manual button press</div>
                     </div>
                   </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.createAsDraft || false}
+                      onChange={(e) => setSettings({ ...settings, createAsDraft: e.target.checked })}
+                      className="w-4 h-4 rounded text-indigo-600 focus:ring-0 bg-slate-900 border-slate-700"
+                    />
+                    <div>
+                      <div className="text-xs font-medium text-white flex items-center gap-1.5">
+                        <span>Draft First Safety Mode</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                          Recommended
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-500">
+                        Create follow-up as a Gmail Draft instead of directly sending, allowing manual review
+                      </div>
+                    </div>
+                  </label>
                 </div>
 
                 <button

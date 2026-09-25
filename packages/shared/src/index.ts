@@ -10,6 +10,7 @@ export enum FollowUpStatus {
   SCHEDULED = 'SCHEDULED',
   PROCESSING = 'PROCESSING',
   SENT = 'SENT',
+  DRAFTED = 'DRAFTED',
   CANCELLED = 'CANCELLED',
   FAILED = 'FAILED'
 }

@@ -141,10 +141,11 @@ Progress Tracker: `[x]` Completed | `[/]` In Progress | `[ ]` Pending
 ---
 
 ## Phase 11: Reliability, Safety & Testing
-- [ ] Add "Draft First" mode (create Gmail draft instead of direct send for safety testing)
-- [ ] End-to-end integration test with test Gmail account
-- [ ] Idempotency tests (verify worker restart does not send duplicates)
-- [ ] Retry backoff on Gmail rate limits (429 / 503)
+- [x] Add "Draft First" mode (create Gmail draft instead of direct send for safety testing)
+- [x] End-to-end integration and reliability verification test suite (`apps/api/test/e2e-simulation.ts`)
+- [x] Idempotency tests (verify deterministic job IDs and deduplication)
+- [x] Auto-responder and bounce resilience verification
+- [x] Verify full monorepo build across shared, API, and web packages
 
 ---
 

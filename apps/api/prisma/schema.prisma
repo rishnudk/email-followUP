@@ -25,6 +25,7 @@ model User {
   defaultMaxFollowUps       Int     @default(2)
   autoTrackSentEmails       Boolean @default(true)
   autoEnableFollowUp        Boolean @default(false)
+  createAsDraft             Boolean @default(false) // Draft First safety mode
   timezone                  String  @default("UTC")
 
   createdAt    DateTime @default(now())
@@ -136,6 +137,7 @@ enum FollowUpStatus {
   SCHEDULED
   PROCESSING
   SENT
+  DRAFTED
   CANCELLED
   FAILED
 }

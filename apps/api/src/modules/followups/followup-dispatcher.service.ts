@@ -80,25 +80,44 @@ export class FollowUpDispatcherService {
       originalSubject: thread.subject,
     });
 
-    // 3. Send email via Gmail API
+    // 3. Dispatch follow-up: send directly or save as draft (Draft First mode)
     const gmail = await GmailService.createForUser(thread.userId);
-    const sentGmailMsg = await gmail.sendEmailInThread({
-      to: thread.recipientEmail,
-      from: thread.user.email,
-      subject: interpolatedSubject,
-      body: interpolatedBody,
-      threadId: thread.providerThreadId,
-      inReplyTo: parentRfcId,
-      references: referencesChain || parentRfcId,
-    });
+    const isDraftMode = Boolean(thread.user.createAsDraft);
+    let providerMsgId: string;
+
+    if (isDraftMode) {
+      const draft = await gmail.createDraftInThread({
+        to: thread.recipientEmail,
+        from: thread.user.email,
+        subject: interpolatedSubject,
+        body: interpolatedBody,
+        threadId: thread.providerThreadId,
+        inReplyTo: parentRfcId,
+        references: referencesChain || parentRfcId,
+      });
+      providerMsgId = draft.id || `draft_${Date.now()}`;
+      console.log(`[FollowUpDispatcher] Created follow-up draft in Gmail for thread ${thread.id} (Draft First mode).`);
+    } else {
+      const sentGmailMsg = await gmail.sendEmailInThread({
+        to: thread.recipientEmail,
+        from: thread.user.email,
+        subject: interpolatedSubject,
+        body: interpolatedBody,
+        threadId: thread.providerThreadId,
+        inReplyTo: parentRfcId,
+        references: referencesChain || parentRfcId,
+      });
+      providerMsgId = sentGmailMsg.id || `sent_${Date.now()}`;
+    }
 
     const now = new Date();
+    const followUpStatus = isDraftMode ? FollowUpStatus.DRAFTED : FollowUpStatus.SENT;
 
     // 4. Record new message in database
     await prisma.emailMessage.create({
       data: {
         emailThreadId: thread.id,
-        providerMessageId: sentGmailMsg.id || `sent_${now.getTime()}`,
+        providerMessageId: providerMsgId,
         originalRfcMessageId: undefined, // Will be fetched on next sync
         senderEmail: thread.user.email,
         recipientEmail: thread.recipientEmail,
@@ -118,7 +137,7 @@ export class FollowUpDispatcherService {
         },
       },
       update: {
-        status: FollowUpStatus.SENT,
+        status: followUpStatus,
         sentAt: now,
         customBody: interpolatedBody,
       },
@@ -127,7 +146,7 @@ export class FollowUpDispatcherService {
         attempt,
         scheduledAt: now,
         sentAt: now,
-        status: FollowUpStatus.SENT,
+        status: followUpStatus,
         customBody: interpolatedBody,
       },
     });

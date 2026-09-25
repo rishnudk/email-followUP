@@ -246,4 +246,24 @@ export class GmailService {
 
     return res.data;
   }
+
+  /**
+   * Creates a draft inside an existing conversation thread (for "Draft First" safety mode).
+   */
+  async createDraftInThread(options: SendThreadEmailOptions): Promise<gmail_v1.Schema$Draft> {
+    const from = options.from || this.userEmail;
+    const raw = GmailService.buildMimeMessage({ ...options, from });
+
+    const res = await this.gmail.users.drafts.create({
+      userId: 'me',
+      requestBody: {
+        message: {
+          raw,
+          threadId: options.threadId,
+        },
+      },
+    });
+
+    return res.data;
+  }
 }
