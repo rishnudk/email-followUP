@@ -1,0 +1,146 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+
+  googleId     String?  @unique
+  accessToken  String?
+  refreshToken String?  // Encrypted at rest
+  tokenExpiry  DateTime?
+
+  lastSyncAt   DateTime?
+
+  // User Settings
+  defaultFirstFollowUpDays  Int     @default(3)
+  defaultSecondFollowUpDays Int     @default(5)
+  defaultMaxFollowUps       Int     @default(2)
+  autoTrackSentEmails       Boolean @default(true)
+  autoEnableFollowUp        Boolean @default(false)
+  timezone                  String  @default("UTC")
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  emailThreads EmailThread[]
+  templates    FollowUpTemplate[]
+}
+
+model EmailThread {
+  id               String      @id @default(cuid())
+  userId           String
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  providerThreadId String
+
+  recipientEmail   String
+  recipientName    String?
+  subject          String
+  sentAt           DateTime
+
+  status           EmailStatus @default(WAITING)
+
+  followUpEnabled  Boolean     @default(true)
+  followUpCount    Int         @default(0)
+  maxFollowUps     Int         @default(2)
+
+  nextFollowUpAt   DateTime?
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  messages         EmailMessage[]
+  followUps        FollowUp[]
+
+  @@unique([userId, providerThreadId])
+  @@index([userId, status])
+  @@index([nextFollowUpAt])
+}
+
+model EmailMessage {
+  id                  String         @id @default(cuid())
+  emailThreadId       String
+  emailThread         EmailThread    @relation(fields: [emailThreadId], references: [id], onDelete: Cascade)
+
+  providerMessageId   String
+  originalRfcMessageId String?       // RFC 2822 Message-ID header (crucial for threading)
+
+  senderEmail         String
+  recipientEmail      String
+  subject             String?
+  snippet             String?
+  sentAt              DateTime
+
+  direction           EmailDirection
+  isAutoReply         Boolean        @default(false)
+
+  createdAt           DateTime       @default(now())
+
+  @@index([emailThreadId])
+  @@index([providerMessageId])
+}
+
+model FollowUp {
+  id            String         @id @default(cuid())
+  emailThreadId String
+  emailThread   EmailThread    @relation(fields: [emailThreadId], references: [id], onDelete: Cascade)
+
+  attempt       Int
+  scheduledAt   DateTime
+  sentAt        DateTime?
+
+  status        FollowUpStatus @default(SCHEDULED)
+  customBody    String?
+  errorMessage  String?
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([emailThreadId, attempt])
+  @@index([status, scheduledAt])
+}
+
+model FollowUpTemplate {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String
+  subject     String
+  body        String
+  isDefault   Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum EmailStatus {
+  WAITING
+  REPLIED
+  COMPLETED
+  STOPPED
+  BOUNCED
+}
+
+enum FollowUpStatus {
+  SCHEDULED
+  PROCESSING
+  SENT
+  CANCELLED
+  FAILED
+}
+
+enum EmailDirection {
+  SENT
+  RECEIVED
+}
