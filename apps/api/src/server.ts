@@ -10,6 +10,9 @@ import { followUpRoutes } from './modules/followups/followup.routes';
 import { EmailSyncService } from './modules/emails/email-sync.service';
 import { startFollowUpWorker, stopFollowUpWorker } from './workers/followup.worker';
 
+import { templateRoutes } from './modules/templates/template.routes';
+import { settingsRoutes } from './modules/settings/settings.routes';
+
 async function bootstrap() {
   const app = Fastify({
     logger: true,
@@ -31,6 +34,8 @@ async function bootstrap() {
   await app.register(authRoutes, { prefix: '/auth' });
   await app.register(emailRoutes, { prefix: '/emails' });
   await app.register(followUpRoutes, { prefix: '/followups' });
+  await app.register(templateRoutes, { prefix: '/templates' });
+  await app.register(settingsRoutes);
 
   // Health check endpoint
   app.get('/health', async () => {

@@ -101,21 +101,20 @@ Progress Tracker: `[x]` Completed | `[/]` In Progress | `[ ]` Pending
 ---
 
 ## Phase 9: Fastify REST API Routes
-- [ ] **Emails / Threads:**
+- [x] **Emails / Threads:**
   - `GET /emails` (list threads with pagination, filter by status)
   - `GET /emails/:id` (thread details + message timeline + follow-up history)
-  - `POST /emails/:id/enable` (enable automation)
-  - `POST /emails/:id/disable` (disable automation)
-  - `POST /emails/:id/stop` (permanently stop)
-- [ ] **Follow-ups:**
+  - `POST /emails/:id/enable` (enable automation and schedule job)
+  - `POST /emails/:id/disable` (disable automation and cancel job)
+  - `POST /emails/:id/stop` (permanently stop and cancel job)
+- [x] **Follow-ups:**
   - `GET /followups/upcoming` (list pending follow-ups)
-  - `POST /followups/:id/send-now` (manual trigger)
-  - `POST /followups/:id/cancel` (cancel specific attempt)
-- [ ] **Templates:**
-  - `GET /templates`, `POST /templates`, `PATCH /templates/:id`, `DELETE /templates/:id`
-- [ ] **Settings & Analytics:**
+  - `POST /followups/:threadId/send-now` (manual trigger)
+- [x] **Templates:**
+  - `GET /templates`, `POST /templates`, `PATCH /templates/:id`, `DELETE /templates/:id`, `POST /templates/:id/set-default`
+- [x] **Settings & Analytics:**
   - `GET /settings`, `PATCH /settings`
-  - `GET /dashboard/stats` (counts for Sent, Waiting, Replied, Due Soon)
+  - `GET /dashboard/stats` (counts for Sent, Waiting, Replied, Bounced, Due Soon)
 
 ---
 
