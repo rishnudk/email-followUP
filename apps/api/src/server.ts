@@ -7,6 +7,7 @@ import authPlugin from './plugins/auth.plugin';
 import { authRoutes } from './modules/auth/auth.routes';
 import { emailRoutes } from './modules/emails/email.routes';
 import { EmailSyncService } from './modules/emails/email-sync.service';
+import { startFollowUpWorker, stopFollowUpWorker } from './workers/followup.worker';
 
 async function bootstrap() {
   const app = Fastify({
@@ -38,6 +39,9 @@ async function bootstrap() {
     await app.listen({ port: env.PORT, host: '0.0.0.0' });
     app.log.info(`🚀 API server running on port ${env.PORT}`);
 
+    // Start BullMQ background worker
+    startFollowUpWorker();
+
     // Setup periodic email sync every 5 minutes
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     setInterval(async () => {
@@ -48,6 +52,17 @@ async function bootstrap() {
         app.log.error('[PeriodicSync] Error in scheduled email sync:', err);
       }
     }, SYNC_INTERVAL_MS);
+
+    // Graceful shutdown hooks
+    const shutdown = async () => {
+      app.log.info('Shutting down API server...');
+      await stopFollowUpWorker();
+      await app.close();
+      process.exit(0);
+    };
+
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
   } catch (err) {
     app.log.error(err);
     process.exit(1);

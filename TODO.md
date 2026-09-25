@@ -57,12 +57,13 @@ Progress Tracker: `[x]` Completed | `[/]` In Progress | `[ ]` Pending
 ---
 
 ## Phase 6: Queue & BullMQ Scheduling
-- [ ] Connect Redis client via `ioredis`
-- [ ] Create `followup-queue.ts` with BullMQ:
+- [x] Connect Redis client via `ioredis` (`apps/api/src/lib/redis.ts`)
+- [x] Create `followup-queue.ts` with BullMQ (`apps/api/src/queues/followup.queue.ts`):
   - Add jobs with deterministic `jobId` (`followup:<threadId>:<attempt>`)
   - Configurable delay (e.g., 3 days, 5 days in milliseconds)
-- [ ] Create `followup-worker.ts` skeleton to process scheduled follow-up jobs
-- [ ] Implement business hours / weekday scheduling calculator (avoid sending on weekends/midnight)
+  - Helper to cancel scheduled jobs by `jobId`
+- [x] Create `followup-worker.ts` skeleton to process scheduled follow-up jobs (`apps/api/src/workers/followup.worker.ts`)
+- [x] Implement business hours / weekday scheduling calculator (`apps/api/src/lib/scheduler.ts`)
 
 ---
 

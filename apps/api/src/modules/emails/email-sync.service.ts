@@ -1,6 +1,8 @@
 import { prisma } from '../../lib/prisma';
 import { GmailService, ParsedGmailMessage } from '../gmail/gmail.service';
 import { EmailDirection, EmailStatus } from '@email-followup/shared';
+import { calculateFollowUpTime } from '../../lib/scheduler';
+import { scheduleFollowUpJob } from '../../queues/followup.queue';
 
 export interface SyncStats {
   scannedCount: number;
@@ -68,10 +70,18 @@ export class EmailSyncService {
       });
 
       if (!thread) {
-        // Calculate initial follow-up date if automation is auto-enabled
-        const nextFollowUpAt = user.autoEnableFollowUp
-          ? new Date(msg.date.getTime() + user.defaultFirstFollowUpDays * 24 * 60 * 60 * 1000)
-          : null;
+        // Calculate initial follow-up date during business hours
+        let nextFollowUpAt: Date | null = null;
+        let delayMs = 0;
+
+        if (user.autoEnableFollowUp) {
+          const timing = calculateFollowUpTime({
+            fromDate: msg.date,
+            businessDaysDelay: user.defaultFirstFollowUpDays,
+          });
+          nextFollowUpAt = timing.scheduledAt;
+          delayMs = timing.delayMs;
+        }
 
         thread = await prisma.emailThread.create({
           data: {
@@ -87,6 +97,18 @@ export class EmailSyncService {
             nextFollowUpAt,
           },
         });
+
+        // Schedule BullMQ job if automation is enabled
+        if (user.autoEnableFollowUp) {
+          await scheduleFollowUpJob(
+            {
+              emailThreadId: thread.id,
+              attempt: 1,
+              userId: user.id,
+            },
+            delayMs
+          );
+        }
 
         newThreadsCount++;
       }

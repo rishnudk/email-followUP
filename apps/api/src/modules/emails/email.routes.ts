@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { prisma } from '../../lib/prisma';
 import { EmailSyncService } from './email-sync.service';
 import { EmailStatus } from '@email-followup/shared';
+import { scheduleFollowUpJob, cancelAllFollowUpsForThread } from '../../queues/followup.queue';
+import { calculateFollowUpTime } from '../../lib/scheduler';
 
 export const emailRoutes: FastifyPluginAsync = async (fastify) => {
   // All email routes require authentication
@@ -123,8 +125,12 @@ export const emailRoutes: FastifyPluginAsync = async (fastify) => {
       where: { id: request.user!.id },
     });
 
-    const nextFollowUpAt = thread.nextFollowUpAt ||
-      new Date(Date.now() + (user?.defaultFirstFollowUpDays || 3) * 24 * 60 * 60 * 1000);
+    const timing = calculateFollowUpTime({
+      fromDate: thread.sentAt,
+      businessDaysDelay: user?.defaultFirstFollowUpDays || 3,
+    });
+
+    const nextFollowUpAt = thread.nextFollowUpAt || timing.scheduledAt;
 
     const updated = await prisma.emailThread.update({
       where: { id },
@@ -135,12 +141,22 @@ export const emailRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
 
+    // Schedule delayed BullMQ job
+    await scheduleFollowUpJob(
+      {
+        emailThreadId: thread.id,
+        attempt: thread.followUpCount + 1,
+        userId: request.user!.id,
+      },
+      timing.delayMs
+    );
+
     return { success: true, thread: updated };
   });
 
   /**
    * POST /emails/:id/disable
-   * Disables automated follow-up for a thread.
+   * Disables automated follow-up for a thread and cancels pending queue jobs.
    */
   fastify.post('/:id/disable', async (request, reply) => {
     const paramsSchema = z.object({ id: z.string() });
@@ -158,6 +174,9 @@ export const emailRoutes: FastifyPluginAsync = async (fastify) => {
       where: { id },
       data: { followUpEnabled: false },
     });
+
+    // Remove pending jobs from BullMQ
+    await cancelAllFollowUpsForThread(id);
 
     return { success: true, thread: updated };
   });
@@ -186,6 +205,9 @@ export const emailRoutes: FastifyPluginAsync = async (fastify) => {
         nextFollowUpAt: null,
       },
     });
+
+    // Remove pending jobs from BullMQ
+    await cancelAllFollowUpsForThread(id);
 
     return { success: true, thread: updated };
   });
