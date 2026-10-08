@@ -35,3 +35,11 @@ Thumbs.db
 *.sw?
 .idea/
 .vscode/
+
+
+.agent
+.agents
+.claude
+.codex
+.gemini
+.opencode
