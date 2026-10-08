@@ -23,6 +23,7 @@ import {
   Calendar,
   Layers,
   ArrowRight,
+  Loader2,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -152,8 +153,18 @@ export default function DashboardPage() {
     if (!confirm('Send follow-up email immediately through Gmail?')) return;
     setActionLoading(threadId);
     try {
-      await api.sendFollowUpNow(threadId);
-      alert('Follow-up sent successfully!');
+      const res = await api.sendFollowUpNow(threadId);
+      if (res.result?.skipped) {
+        alert(`Follow-up was not sent: ${res.result.reason}`);
+        return;
+      }
+      if (res.result?.isDraft) {
+        alert('Follow-up draft created in Gmail! (Draft First mode)');
+      } else if (res.result?.simulated) {
+        alert('Follow-up sent successfully! (Demo Mode: simulated)');
+      } else {
+        alert('Follow-up sent successfully!');
+      }
       await loadData();
       if (selectedThread?.id === threadId) {
         const detail = await api.getEmailDetails(threadId);
@@ -522,12 +533,19 @@ export default function DashboardPage() {
                                   )}
                                 </button>
                                 <button
-                                  onClick={() => handleSendNow(thread.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSendNow(thread.id);
+                                  }}
                                   disabled={actionLoading === thread.id}
                                   title="Send Follow-Up Now"
-                                  className="p-1.5 rounded-lg bg-[#1e2235] hover:bg-indigo-600 text-indigo-400 hover:text-white transition-all"
+                                  className="p-1.5 rounded-lg bg-[#1e2235] hover:bg-indigo-600 text-indigo-400 hover:text-white transition-all disabled:opacity-50"
                                 >
-                                  <Send className="w-3.5 h-3.5" />
+                                  {actionLoading === thread.id ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-300" />
+                                  ) : (
+                                    <Send className="w-3.5 h-3.5" />
+                                  )}
                                 </button>
                                 <button
                                   onClick={() => handleStopAutomation(thread.id)}
@@ -594,9 +612,14 @@ export default function DashboardPage() {
 
                       <button
                         onClick={() => handleSendNow(item.id)}
-                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium flex items-center gap-1.5 transition-all shadow-sm"
+                        disabled={actionLoading === item.id}
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50"
                       >
-                        <Send className="w-3.5 h-3.5" />
+                        {actionLoading === item.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Send className="w-3.5 h-3.5" />
+                        )}
                         Send Now
                       </button>
                     </div>
@@ -913,9 +936,14 @@ export default function DashboardPage() {
                   </button>
                   <button
                     onClick={() => handleSendNow(selectedThread.id)}
-                    className="px-4 py-2 rounded-xl text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1.5 transition-all shadow-md"
+                    disabled={actionLoading === selectedThread.id}
+                    className="px-4 py-2 rounded-xl text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1.5 transition-all shadow-md disabled:opacity-50"
                   >
-                    <Send className="w-3.5 h-3.5" />
+                    {actionLoading === selectedThread.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5" />
+                    )}
                     Send Follow-Up Now
                   </button>
                 </>

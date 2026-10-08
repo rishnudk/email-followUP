@@ -18,6 +18,17 @@ async function bootstrap() {
     logger: true,
   });
 
+  // Support empty JSON request body without throwing FST_ERR_CTP_EMPTY_JSON_BODY (400 Bad Request)
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+    try {
+      const json = body && typeof body === 'string' && body.trim() ? JSON.parse(body) : {};
+      done(null, json);
+    } catch (err: any) {
+      err.statusCode = 400;
+      done(err, undefined);
+    }
+  });
+
   await app.register(cors, {
     origin: [env.WEB_URL, 'http://localhost:3000'],
     credentials: true,

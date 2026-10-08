@@ -55,10 +55,16 @@ export const followUpRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     // Cancel any delayed job queued for this attempt
-    await cancelFollowUpJob(thread.id, nextAttempt);
+    try {
+      await cancelFollowUpJob(thread.id, nextAttempt);
+    } catch (err: any) {
+      request.log.warn(`Failed to cancel follow-up job for thread ${thread.id}: ${err.message}`);
+    }
 
-    // Dispatch immediately
-    const result = await FollowUpDispatcherService.dispatchFollowUp(thread.id, nextAttempt);
+    // Dispatch immediately with forceManual: true
+    const result = await FollowUpDispatcherService.dispatchFollowUp(thread.id, nextAttempt, {
+      forceManual: true,
+    });
 
     return { success: true, result };
   });

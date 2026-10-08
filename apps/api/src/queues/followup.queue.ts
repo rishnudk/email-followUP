@@ -22,6 +22,13 @@ export const followUpQueue = new Queue<FollowUpJobData>(FOLLOWUP_QUEUE_NAME, {
   },
 });
 
+async function withTimeout<T>(promise: Promise<T>, ms = 3000): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+}
+
 /**
  * Schedules a delayed follow-up job using a deterministic jobId to prevent duplicate executions.
  */
@@ -29,36 +36,49 @@ export async function scheduleFollowUpJob(
   data: FollowUpJobData,
   delayMs: number
 ) {
-  const jobId = `followup:${data.emailThreadId}:${data.attempt}`;
+  try {
+    const jobId = `followup:${data.emailThreadId}:${data.attempt}`;
 
-  // Check if a job with this deterministic ID already exists
-  const existingJob = await followUpQueue.getJob(jobId);
-  if (existingJob) {
-    const state = await existingJob.getState();
-    if (state === 'delayed' || state === 'waiting') {
-      await existingJob.remove();
+    // Check if a job with this deterministic ID already exists
+    const existingJob = await withTimeout(followUpQueue.getJob(jobId), 2000);
+    if (existingJob) {
+      const state = await existingJob.getState();
+      if (state === 'delayed' || state === 'waiting') {
+        await withTimeout(existingJob.remove(), 2000);
+      }
     }
+
+    const job = await withTimeout(
+      followUpQueue.add('send-followup', data, {
+        delay: delayMs,
+        jobId,
+      }),
+      2500
+    );
+
+    return job;
+  } catch (err: any) {
+    console.warn(`[FollowUpQueue] Failed to schedule job for thread ${data.emailThreadId}:`, err.message);
+    return null;
   }
-
-  const job = await followUpQueue.add('send-followup', data, {
-    delay: delayMs,
-    jobId,
-  });
-
-  return job;
 }
 
 /**
  * Cancels a specific follow-up attempt for a thread.
  */
 export async function cancelFollowUpJob(emailThreadId: string, attempt: number) {
-  const jobId = `followup:${emailThreadId}:${attempt}`;
-  const job = await followUpQueue.getJob(jobId);
-  if (job) {
-    await job.remove();
-    return true;
+  try {
+    const jobId = `followup:${emailThreadId}:${attempt}`;
+    const job = await withTimeout(followUpQueue.getJob(jobId), 2000);
+    if (job) {
+      await withTimeout(job.remove(), 2000);
+      return true;
+    }
+    return false;
+  } catch (err: any) {
+    console.warn(`[FollowUpQueue] Failed to cancel job for thread ${emailThreadId}:`, err.message);
+    return false;
   }
-  return false;
 }
 
 /**

@@ -6,11 +6,19 @@ import { scheduleFollowUpJob } from '../../queues/followup.queue';
 import { EmailDirection, EmailStatus, FollowUpStatus } from '@email-followup/shared';
 import { DEFAULT_TEMPLATES } from '../../lib/constants';
 
+export interface DispatchFollowUpOptions {
+  forceManual?: boolean;
+}
+
 export class FollowUpDispatcherService {
   /**
    * Dispatches a scheduled or manual follow-up email inside the existing Gmail thread.
    */
-  static async dispatchFollowUp(emailThreadId: string, attempt: number): Promise<any> {
+  static async dispatchFollowUp(
+    emailThreadId: string,
+    attempt: number,
+    options: DispatchFollowUpOptions = {}
+  ): Promise<any> {
     const thread = await prisma.emailThread.findUnique({
       where: { id: emailThreadId },
       include: {
@@ -27,10 +35,15 @@ export class FollowUpDispatcherService {
 
     if (thread.status !== EmailStatus.WAITING) {
       console.log(`[FollowUpDispatcher] Thread ${emailThreadId} status is ${thread.status}. Aborting send.`);
+      if (options.forceManual) {
+        throw new Error(`Cannot send follow-up: thread status is ${thread.status}`);
+      }
       return { skipped: true, reason: `status_${thread.status}` };
     }
 
-    if (!thread.followUpEnabled) {
+    // For background queue runs, verify automation is enabled.
+    // When manually triggered by user ("Send Follow-Up Now"), do NOT abort.
+    if (!options.forceManual && !thread.followUpEnabled) {
       console.log(`[FollowUpDispatcher] Follow-up automation disabled for thread ${emailThreadId}. Aborting.`);
       return { skipped: true, reason: 'automation_disabled' };
     }
@@ -80,34 +93,42 @@ export class FollowUpDispatcherService {
       originalSubject: thread.subject,
     });
 
-    // 3. Dispatch follow-up: send directly or save as draft (Draft First mode)
-    const gmail = await GmailService.createForUser(thread.userId);
+    // 3. Dispatch follow-up: send directly, save as draft (Draft First mode), or simulate in Demo Mode
+    const isDemoUser = !thread.user.refreshToken;
     const isDraftMode = Boolean(thread.user.createAsDraft);
     let providerMsgId: string;
 
-    if (isDraftMode) {
-      const draft = await gmail.createDraftInThread({
-        to: thread.recipientEmail,
-        from: thread.user.email,
-        subject: interpolatedSubject,
-        body: interpolatedBody,
-        threadId: thread.providerThreadId,
-        inReplyTo: parentRfcId,
-        references: referencesChain || parentRfcId,
-      });
-      providerMsgId = draft.id || `draft_${Date.now()}`;
-      console.log(`[FollowUpDispatcher] Created follow-up draft in Gmail for thread ${thread.id} (Draft First mode).`);
+    if (isDemoUser) {
+      providerMsgId = isDraftMode ? `demo_draft_${Date.now()}` : `demo_sent_${Date.now()}`;
+      console.log(`[FollowUpDispatcher] Demo mode: simulated follow-up (${isDraftMode ? 'draft' : 'send'}) for thread ${thread.id}`);
     } else {
-      const sentGmailMsg = await gmail.sendEmailInThread({
-        to: thread.recipientEmail,
-        from: thread.user.email,
-        subject: interpolatedSubject,
-        body: interpolatedBody,
-        threadId: thread.providerThreadId,
-        inReplyTo: parentRfcId,
-        references: referencesChain || parentRfcId,
-      });
-      providerMsgId = sentGmailMsg.id || `sent_${Date.now()}`;
+      const gmail = await GmailService.createForUser(thread.userId);
+
+      if (isDraftMode) {
+        const draft = await gmail.createDraftInThread({
+          to: thread.recipientEmail,
+          from: thread.user.email,
+          subject: interpolatedSubject,
+          body: interpolatedBody,
+          threadId: thread.providerThreadId,
+          inReplyTo: parentRfcId,
+          references: referencesChain || parentRfcId,
+        });
+        providerMsgId = draft.id || `draft_${Date.now()}`;
+        console.log(`[FollowUpDispatcher] Created follow-up draft in Gmail for thread ${thread.id} (Draft First mode).`);
+      } else {
+        const sentGmailMsg = await gmail.sendEmailInThread({
+          to: thread.recipientEmail,
+          from: thread.user.email,
+          subject: interpolatedSubject,
+          body: interpolatedBody,
+          threadId: thread.providerThreadId,
+          inReplyTo: parentRfcId,
+          references: referencesChain || parentRfcId,
+        });
+        providerMsgId = sentGmailMsg.id || `sent_${Date.now()}`;
+        console.log(`[FollowUpDispatcher] Sent follow-up email in Gmail for thread ${thread.id}.`);
+      }
     }
 
     const now = new Date();
@@ -162,24 +183,28 @@ export class FollowUpDispatcherService {
         businessDaysDelay: nextDelayDays,
       });
 
+      // If thread has automation enabled, update nextFollowUpAt and schedule next background job
+      const shouldScheduleNext = thread.followUpEnabled;
+
       await prisma.emailThread.update({
         where: { id: thread.id },
         data: {
           followUpCount: newFollowUpCount,
-          nextFollowUpAt: timing.scheduledAt,
+          nextFollowUpAt: shouldScheduleNext ? timing.scheduledAt : null,
         },
       });
 
-      await scheduleFollowUpJob(
-        {
-          emailThreadId: thread.id,
-          attempt: newFollowUpCount + 1,
-          userId: thread.userId,
-        },
-        timing.delayMs
-      );
-
-      console.log(`[FollowUpDispatcher] Scheduled follow-up #${newFollowUpCount + 1} for thread ${thread.id} in ${nextDelayDays} business days`);
+      if (shouldScheduleNext && !isDemoUser) {
+        await scheduleFollowUpJob(
+          {
+            emailThreadId: thread.id,
+            attempt: newFollowUpCount + 1,
+            userId: thread.userId,
+          },
+          timing.delayMs
+        );
+        console.log(`[FollowUpDispatcher] Scheduled follow-up #${newFollowUpCount + 1} for thread ${thread.id} in ${nextDelayDays} business days`);
+      }
     } else {
       // Reached maximum allowed follow-ups
       await prisma.emailThread.update({
@@ -199,6 +224,8 @@ export class FollowUpDispatcherService {
       followUpId: followUp.id,
       attempt,
       sentAt: now,
+      isDraft: isDraftMode,
+      simulated: isDemoUser,
     };
   }
 }
