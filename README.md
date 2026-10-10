@@ -2,6 +2,8 @@
 
 An intelligent, full-stack email follow-up automation platform that seamlessly integrates with Gmail. It monitors your sent emails, schedules multi-step follow-ups using Redis and BullMQ, intelligently detects replies, bounces, and out-of-office auto-responders to prevent redundant emails, and provides a sleek modern dashboard to manage everything.
 
+![Auto Follow-Up Dashboard](assets/dashboard-preview.png)
+
 ---
 
 ## ✨ Features
